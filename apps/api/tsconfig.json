@@ -5,6 +5,7 @@
     "moduleResolution": "NodeNext",
     "rewriteRelativeImportExtensions": true,
     "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
     "types": ["node"]
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "prisma.config.ts"]

@@ -13,9 +13,10 @@
   "scripts": {
     "check:pack": "node --test reference/scoring.test.ts",
     "dev": "concurrently --kill-others --names api,web \"npm run dev --workspace @disc/api\" \"npm run dev --workspace @disc/web\"",
-    "lint": "eslint apps scripts eslint.config.mjs",
-    "typecheck": "npm run db:generate && npm run typecheck --workspaces && tsc --project tsconfig.reference.json",
-    "test": "npm run check:pack && npm run test --workspaces --if-present",
+    "lint": "eslint apps scripts tests eslint.config.mjs",
+    "typecheck": "npm run db:generate && npm run typecheck --workspaces && tsc --project tsconfig.reference.json && tsc --project tsconfig.tests.json",
+    "test": "npm run check:pack && npm run test --workspaces --if-present && npm run test:reports",
+    "test:reports": "node --test tests/*.test.ts",
     "test:built": "npm run test:built --workspace @disc/api",
     "build": "npm run build --workspace @disc/api && npm run build --workspace @disc/web",
     "start:api": "npm run start --workspace @disc/api",
@@ -24,10 +25,14 @@
     "db:validate": "npm run db:validate --workspace @disc/api",
     "db:check": "npm run db:check --workspace @disc/api",
     "db:migrate": "npm run db:migrate --workspace @disc/api",
-    "db:deploy": "npm run db:deploy --workspace @disc/api"
+    "db:deploy": "npm run db:deploy --workspace @disc/api",
+    "db:seed": "npm run db:seed --workspace @disc/api",
+    "test:integration": "npm run test:integration --workspace @disc/api",
+    "test:e2e": "node tests/e2e/run.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
     "@types/node": "24.19.2",
     "concurrently": "10.0.6",
     "eslint": "10.13.0",

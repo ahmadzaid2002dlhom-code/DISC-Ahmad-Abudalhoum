@@ -9,4 +9,98 @@ datasource db {
   provider = "postgresql"
 }
 
-// Domain models and migrations belong to Phase 3. No assessment/auth tables yet.
+enum StaffRole {
+  FACILITATOR
+  MANAGER
+}
+
+enum ParticipantStatus {
+  INVITED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ProfileStatus {
+  SINGLE
+  TIED
+}
+
+enum ProfileCode {
+  DI
+  DS
+  DC
+  ID
+  IS
+  IC
+  SD
+  SI
+  SC
+  CD
+  CI
+  CS
+}
+
+model StaffUser {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String
+  role         StaffRole
+}
+
+// One deployment is one shared cohort; there is deliberately no per-staff owner.
+model Participant {
+  id                       String            @id @default(uuid()) @db.Uuid
+  name                     String
+  email                    String?
+  status                   ParticipantStatus @default(INVITED)
+  assessmentVersion        String
+  scoringPolicyVersion     String
+  profileTextPolicyVersion String
+  inviteTokenHash          String            @unique @db.Char(64)
+  inviteExpiresAt          DateTime          @db.Timestamptz(3)
+  createdAt                DateTime          @default(now()) @db.Timestamptz(3)
+  startedAt                DateTime?         @db.Timestamptz(3)
+  completedAt              DateTime?         @db.Timestamptz(3)
+  answers                  Answer[]
+  result                   Result?
+}
+
+model Answer {
+  participantId String      @db.Uuid
+  groupId       String
+  rankedWordIds String[]
+  confirmedAt   DateTime     @db.Timestamptz(3)
+  updatedAt     DateTime     @updatedAt @db.Timestamptz(3)
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Restrict)
+
+  @@id([participantId, groupId])
+}
+
+model Result {
+  id                       String        @id @default(uuid()) @db.Uuid
+  participantId            String        @unique @db.Uuid
+  scoreD                   Int
+  scoreI                   Int
+  scoreS                   Int
+  scoreC                   Int
+  scoreRanking             Json
+  tiedScoreGroups          Json
+  profileStatus            ProfileStatus
+  profileCode              ProfileCode?
+  candidateProfileCodes    ProfileCode[]
+  candidateProfiles        Json
+  completedAt              DateTime      @db.Timestamptz(3)
+  assessmentVersion        String
+  scoringPolicyVersion     String
+  profileTextPolicyVersion String
+  participant              Participant   @relation(fields: [participantId], references: [id], onDelete: Restrict)
+}
+
+// Opaque session IDs are SHA-256 hashed before persistence. Data holds one principal.
+model Session {
+  id        String   @id @db.Char(64)
+  data      Json
+  expiresAt DateTime @db.Timestamptz(3)
+
+  @@index([expiresAt])
+}

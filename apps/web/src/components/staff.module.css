@@ -1,0 +1,40 @@
+.page { max-width: 76rem; margin: 2rem auto; padding: 1rem; color: #162432; font-family: system-ui, sans-serif; line-height: 1.5; }
+.page nav { display: flex; gap: 1rem; flex-wrap: wrap; }
+.page a { color: #134f70; }
+.page button, .page input { min-height: 44px; padding: .5rem .75rem; font: inherit; border: 1px solid #627888; border-radius: .35rem; box-sizing: border-box; }
+.page button { background: #134f70; color: white; cursor: pointer; }
+.page button:disabled { opacity: .55; cursor: default; }
+.page :focus-visible { outline: 3px solid #0866b0; outline-offset: 3px; }
+.panel { border: 1px solid #b5c7d1; border-radius: .5rem; padding: 1rem; margin: 1.5rem 0; min-width: 0; }
+.panel h2 { margin-top: 0; }
+.fields { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; }
+.fields label { display: grid; flex: 1 1 15rem; gap: .3rem; min-width: 0; }
+.fields input, .link { width: 100%; min-width: 0; }
+.invitation { display: grid; gap: .5rem; margin-top: 1rem; }
+.invitation button { justify-self: start; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; }
+.metric { background: #edf7fa; border: 1px solid #b5c7d1; border-radius: .5rem; padding: 1rem; }
+.metric dt { font-weight: 650; }
+.metric dd { margin: .3rem 0 0; font-size: 1.5rem; font-variant-numeric: tabular-nums; }
+.summaryGrid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1rem; }
+.summaryGrid .panel { margin: 0; }
+.distribution { padding: 0; list-style: none; }
+.distribution li { display: grid; grid-template-columns: 3rem minmax(0, 1fr) 3rem; gap: .75rem; align-items: center; margin: .5rem 0; }
+.track { height: 1rem; background: #edf2f5; }
+.bar { display: block; height: 100%; background: #176079; }
+.scroll { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.table caption { text-align: left; font-weight: 650; margin-bottom: .75rem; }
+.table th, .table td { padding: .65rem; text-align: left; border-bottom: 1px solid #c2d1da; vertical-align: top; }
+.table thead { background: #edf2f5; }
+.participants { min-width: 55rem; }
+.participants td:first-of-type { min-width: 8rem; }
+.profiles { margin: .25rem 0; padding-left: 1.2rem; min-width: 13rem; }
+.profiles li { overflow-wrap: anywhere; }
+.muted { color: #405565; }
+.error { border-left: 4px solid #a2251c; padding: .75rem; background: #fff2ef; }
+@media (max-width: 640px) {
+  .page { margin: .5rem auto; padding: .75rem; }
+  .summaryGrid { grid-template-columns: minmax(0, 1fr); }
+  .panel { padding: .75rem; }
+}

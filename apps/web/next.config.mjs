@@ -10,6 +10,15 @@ if (!['http:', 'https:'].includes(apiOrigin.protocol) ||
 /** @type {import('next').NextConfig} */
 const config = {
   poweredByHeader: false,
+  // Development access logs would otherwise print invitation tokens in paths.
+  logging: { incomingRequests: false },
+  async headers() {
+    return ['/login', '/invite/:path*', '/assessment', '/result', '/staff/:path*', '/facilitator', '/manager'].map(source => ({ source, headers: [
+      { key: 'Cache-Control', value: 'no-store' },
+      { key: 'Referrer-Policy', value: 'no-referrer' },
+      { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+    ] }));
+  },
   async rewrites() {
     return [{ source: '/api/:path*', destination: `${apiOrigin.origin}/api/:path*` }];
   },
