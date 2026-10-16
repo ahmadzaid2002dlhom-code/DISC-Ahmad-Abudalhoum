@@ -24,7 +24,9 @@
     "db:validate": "npm run db:validate --workspace @disc/api",
     "db:check": "npm run db:check --workspace @disc/api",
     "db:migrate": "npm run db:migrate --workspace @disc/api",
-    "db:deploy": "npm run db:deploy --workspace @disc/api"
+    "db:deploy": "npm run db:deploy --workspace @disc/api",
+    "db:seed": "npm run db:seed --workspace @disc/api",
+    "test:integration": "npm run test:integration --workspace @disc/api"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

@@ -1,0 +1,22 @@
+.page { max-width: 38rem; margin: 2rem auto; padding: 1rem; font-family: system-ui, sans-serif; line-height: 1.5; color: #162432; }
+.page button { min-height: 44px; padding: .5rem .75rem; border: 1px solid #627888; border-radius: .35rem; background: white; color: #162432; cursor: pointer; font: inherit; }
+.page button:disabled { cursor: default; opacity: .55; }
+.page button:focus-visible, .page a:focus-visible { outline: 3px solid #0866b0; outline-offset: 3px; }
+.page .primary { background: #134f70; color: white; border-color: #134f70; }
+.list { list-style: none; padding: 0; display: grid; gap: .75rem; }
+.word { border: 1px solid #99acbb; border-radius: .5rem; padding: .75rem; background: #fff; display: grid; gap: .6rem; }
+.wordHeading { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.wordText { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.arabic { display: block; font-size: 1.1rem; margin-top: .2rem; text-align: start; }
+.handle { touch-action: none; flex-shrink: 0; }
+.controls, .navigation { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.controls { padding-left: .1rem; }
+.navigation { justify-content: space-between; margin-top: 1.25rem; }
+.hint { color: #405565; }
+.message { min-height: 1.5rem; }
+.error { border-left: 4px solid #a2251c; padding: .75rem; background: #fff2ef; }
+.receipt { padding: 1rem; border: 1px solid #99acbb; border-radius: .5rem; margin: 1rem 0; }
+@media (max-width: 420px) {
+  .page { margin: .5rem auto; padding: .75rem; }
+  .navigation > button { flex: 1; }
+}

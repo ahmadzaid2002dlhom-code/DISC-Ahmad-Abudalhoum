@@ -1,6 +1,6 @@
-# DISC prototype — Phases 1–2
+# DISC prototype — Phases 1–4
 
-Next.js App Router/React, a separate Express API, PostgreSQL/Prisma configuration, and the server-only DISC scoring domain are implemented. The web entry point is deliberately empty. Assessment UI, authentication, domain tables, answer persistence and reports belong to later phases.
+Next.js App Router/React, the Express scoring domain, PostgreSQL models/sessions, staff login, invitations and the complete confirm/save/resume/submit assessment flow are implemented. Open `/login` for staff, or use a generated `/invite/[token]` link for participants. `/result` is a small completion receipt with all stored candidate source texts; full report scores/ranking/charts and dashboards remain later phases. The root page remains empty.
 
 The original playbook, private seed, workbook and reference scorer/tests are preserved. Start with `README_START_HERE.md` for the complete phase sequence.
 
@@ -29,29 +29,36 @@ Copy `.env.example` to `.env.local` at the repository root and set `DATABASE_URL
 
 All workspace entry points load the root environment using Node's built-in environment-file loader. Precedence is existing process variables, then root `.env.local`, then root `.env`. Files are resolved relative to the loader, not the current working directory. The loader never reads `.env.example` and never prints values. No `NEXT_PUBLIC_` secrets are used.
 
-| Variable | Phase 1 purpose |
+| Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL connection string, including the provider's required TLS parameters. Needed for DB connection/migration commands, not compilation or health. |
 | `API_PORT` | Local Express port; default `4000`. Hosting-provided `PORT` takes precedence. |
 | `API_HOST` | Bind address; default `127.0.0.1`. Set `0.0.0.0` on a container/host when required. |
 | `API_ORIGIN` | Server-side Express origin for the Next.js rewrite; defaults to `http://localhost:4000`. Set before building production web artifacts. |
-| `PUBLIC_APP_URL` | Reserved frontend URL for later invitations/Origin checks. |
+| `PUBLIC_APP_URL` | Exact frontend origin for invitation links and mutation Origin checks. Production requires HTTPS. |
 | `NODE_ENV` | Development locally; production in deployed processes. |
-| Session/staff variables | Reserved for Phase 3; no login/session code exists yet. |
+| `SESSION_SECRET` | At least 32 bytes of random text; required when starting Express. Generate locally; never commit it. |
+| `FACILITATOR_SEED_EMAIL`, `FACILITATOR_SEED_PASSWORD` | Explicit facilitator seed credentials; password 12–256 characters. |
+| `MANAGER_SEED_EMAIL`, `MANAGER_SEED_PASSWORD` | Distinct manager seed credentials; password 12–256 characters. |
+| `TRUSTED_PROXY_CIDRS` | Production: comma-separated explicit IPs/CIDRs of the verified proxy chain. No hop counts, `true`, or catch-all networks. |
+| `PROXY_CONFIGURATION_VERIFIED` | Production startup requires `true` after verifying the actual chain described below. |
+| `TEST_DATABASE_URL` | Separate PostgreSQL target for integration tests; the suite creates and removes its own random schema. |
 
 ## Run locally
 
 ```sh
+npm run db:deploy
+npm run db:seed
 npm run dev
 ```
 
-This starts Express on port 4000 and Next.js on port 3000. The root launcher stops the other service if either exits. The empty root page is the required App Router scaffold, without assessment UI.
+This applies the committed migration without resetting data, explicitly seeds the two staff accounts, then starts Express on port 4000 and Next.js on port 3000. The root launcher stops the other service if either exits. Visit `http://localhost:3000/login`. Use the exact hostname/port configured in `PUBLIC_APP_URL`; mutations from another origin are rejected.
 
 - Direct API liveness: `http://localhost:4000/api/health`
 - Same-origin forwarded liveness: `http://localhost:3000/api/health`
 - Both return HTTP 200 with `{"status":"ok","service":"disc-api"}` and `Cache-Control: no-store`.
 
-The browser calls `/api/*` on the frontend origin. Next.js rewrites the unchanged path to Express; Next.js implements neither health nor scoring. Health is intentionally a liveness check and does not claim the database is connected. The scoring domain is internal to the API, without a public scoring/assessment route in Phase 2.
+The browser calls `/api/*` on the frontend origin. Next.js rewrites the unchanged path to Express; Next.js implements neither health nor scoring. Health is intentionally a liveness check and does not claim the database is connected. Scoring and all participant writes remain internal to Express; participant requests never supply trusted scores, dimensions or identity.
 
 ```sh
 npm run db:check
@@ -68,6 +75,7 @@ npm test
 npm run db:validate
 npm run build
 npm run test:built
+npm run test:integration  # requires TEST_DATABASE_URL
 ```
 
 - Typecheck generates Prisma Client, checks both applications and checks the unchanged reference scorer/tests with strict TypeScript and unchecked-index protection.
@@ -84,18 +92,19 @@ npm run start:api
 npm run start:web
 ```
 
-## Prisma and later migrations
+## Prisma and migrations
 
 `apps/api/prisma/schema.prisma` defines the PostgreSQL datasource and ESM client generator. `apps/api/prisma.config.ts` supplies the connection URL from the environment. Prisma 7 uses the PostgreSQL driver adapter; client construction is isolated in `apps/api/src/db/client.ts`.
 
-The schema has no domain models in Phase 1. Phase 3 will introduce the participant, answer, immutable result, staff and durable session tables and their migrations.
+The Phase 3 schema contains `StaffUser`, `Participant`, `Answer`, `Result` and `Session`. The committed migration creates the tables, enums, indexes and SQL constraints. Results store the four raw scores, shared ranking/tie JSON, SINGLE/TIED, nullable code, every candidate code/content snapshot and all three versions. SQL checks enforce score bounds/total, SINGLE/TIED shape and matching completed participant/result versions and timestamps. TIED follows the same completed invariant as SINGLE. A trigger rejects result updates/deletes. There is no public result-writing API yet.
 
 ```sh
-npm run db:migrate   # Development migration workflow once domain models exist
+npm run db:migrate   # Develop new migrations against a disposable development target
 npm run db:deploy    # Apply committed migrations to a configured deployment
+npm run db:seed      # Explicitly create the separate staff accounts
 ```
 
-There is no seed command yet; explicit staff seeding belongs to Phase 3. Do not use schema resets against the existing database.
+Seeding hashes passwords with Node's salted scrypt, validates distinct emails, and runs transactionally. Repeating it preserves existing passwords; conflicting existing roles fail instead of silently changing access. Normal server startup never seeds or resets users. Do not use schema resets against an existing database.
 
 ## Tested versions and verification
 
@@ -105,11 +114,12 @@ There is no seed command yet; explicit staff seeding belongs to Phase 3. Do not 
 | Next.js | 16.4.2 |
 | React / React DOM | 19.3.1 |
 | Express | 5.3.0 |
+| express-session / its TypeScript types | 1.19.0 / 1.19.0 |
 | Prisma CLI / Client / PostgreSQL adapter | 7.10.1 |
 | PostgreSQL driver (`pg`) | 8.23.1 |
 | TypeScript | 6.0.3 |
 | ESLint / typescript-eslint | 10.13.0 / 8.71.2 |
-| PostgreSQL server | Not verified: no `DATABASE_URL` was supplied. |
+| PostgreSQL server | 18.6, isolated local verification cluster; an existing user database connection was not found. |
 
 Prisma 8 is currently a release candidate, so this scaffold uses stable Prisma 7. TypeScript 6.0.3 satisfies the installed typescript-eslint peer range. The official `@next/eslint-plugin-next` supplies the Next.js rules directly, alongside TypeScript lint rules, without the full preset's ESLint 9-only transitive plugins. Versions were checked against npm metadata before installation. Only the pinned Prisma CLI/engine installation scripts are approved in the root manifest.
 
@@ -229,3 +239,135 @@ apps/api/test/source.test.ts
 apps/api/test/build/packaged-seed.test.ts
 scripts/package-api-seed.mjs
 ```
+
+## Phase 3 access contracts
+
+All personalized API responses, errors and invitation responses use `Cache-Control: no-store`. `/login` is rendered per request and sends no-store headers. Its form uses the same-origin rewrite, labelled fields, a disabled pending state, an announced error/status message and explicit logout. Staff landing/dashboard UI remains outside this phase, so a successful login returns `/login`, which displays the saved principal and sign-out control.
+
+| Endpoint | Phase 3 contract |
+| --- | --- |
+| `POST /api/auth/login` | JSON `{email,password}`; verifies staff credentials, replaces any prior principal, rotates/saves the session, returns `{principal,redirectTo:'/login'}`. |
+| `POST /api/auth/logout` | JSON `{}`; destroys the stored session and clears its host-only cookie; idempotent 204. |
+| `GET /api/auth/me` | Returns `{principal}` with one STAFF identity/role or one PARTICIPANT identity/status; otherwise 401. Staff roles are read from the DB on each authorized request. |
+| `POST /api/participants` | Either staff role; JSON `{name,email?}`. Creates one INVITED participant with pinned assessment/scoring/text versions. Returns `{participant,invitationUrl}` once. No staff-specific cohort partition. |
+| `GET /api/participants` | Either staff role; all cohort participants with `result:null` while pending, or stored completed result content. Never returns invite hashes/tokens or staff credentials. |
+| `GET /api/participants/:id/report` | Staff only; stored completed report, 404 for unknown participant, 409 for pending. |
+| `POST /api/invitations/redeem` | JSON `{token}`. Checks a SHA-256 hash and expiry under a participant-row lock; starts an INVITED participant once, rotates/saves a participant-only session and returns a clean `/assessment` or `/result` path. |
+| `GET /api/assessment/result` | Participant session only; selects the owner exclusively from the session. Returns their stored result, or 409 if pending. Client IDs/posted scores never select a report. |
+| `/api/manager/*` | MANAGER guard is active. The summary endpoint itself belongs to Phase 6 and currently returns 404 to an authorized manager. |
+
+An invitation uses 32 cryptographically random bytes and expires after seven days. Its URL is `/invite#token=…`; the fragment keeps the token out of HTTP GET requests, normal access logs and Referrer. The invite/start screen and token extraction are Phase 4 work. GET never redeems an invitation. Unexpired invites may be reused to resume the same participant; a completed participant returns to their immutable stored report, including TIED reports. Expired/unknown tokens share a generic 400. An unavailable pinned seed/policy returns a clear 409 rather than substituting a new version. No answer-write or submission endpoint is implemented yet.
+
+## Session and production configuration
+
+Sessions use `express-session` with a PostgreSQL store implemented against the Prisma `Session` model; there is no MemoryStore fallback. The cookie contains a signed opaque ID; only its SHA-256 hash is stored in the database. Session JSON is constrained to `cookie` and exactly one discriminated STAFF or PARTICIPANT principal. Roles/passwords/invite tokens are not copied into session data. Each authentication or redemption destroys the previous session ID, replaces the principal and explicitly awaits the new save before returning a navigation target. Failed saves return generic errors without issuing a new authenticated cookie. Logout revokes the stored ID. Reads never renew the absolute eight-hour lifetime; expired rows are removed on access and during subsequent session writes.
+
+Development uses `disc.sid`; production uses `__Host-disc.sid`, HttpOnly, Secure, SameSite=Lax, Path=/, an explicit eight-hour expiry, and no Domain. Every mutation, including login/redeem/logout, requires the exact configured browser Origin and `application/json`. Missing/foreign/null Origins fail; no permissive CORS or missing-Origin fallback is installed.
+
+Production startup fails unless `PUBLIC_APP_URL` is HTTPS, `SESSION_SECRET` is a non-placeholder random secret, explicit trusted proxy IPs/CIDRs are set, and `PROXY_CONFIGURATION_VERIFIED=true`. Verify the actual deployment before setting that acknowledgement: Express must be reachable only through the intended proxy chain; the edge must replace untrusted Forwarded/X-Forwarded-* headers; the Next rewrite and intervening proxies must preserve the verified HTTPS protocol and cookies. Test a secure cookie through the hosted frontend, rejected spoofed headers from an untrusted address, correct client-IP handling and logout before accepting the deployment. A configuration flag alone does not prove the hosted chain is correct. Hosted verification remains Phase 8; local tests cover the trusted/untrusted proxy behavior. See the official [Express session documentation](https://expressjs.com/en/resources/middleware/session/) and [proxy documentation](https://expressjs.com/en/guide/behind-proxies/).
+
+## Phase 3 checks — 16 October 2026
+
+No existing PostgreSQL service/listener, configured DATABASE_URL or project environment file was found. For verification only, official portable PostgreSQL 18.6 binaries were downloaded to an OS temporary directory and a password-protected cluster was bound to `127.0.0.1:55432`. No Windows service, external database, real staff account or deployment was created. Credentials stayed outside the repository/output. Configure your intended persistent database and staff values in root `.env.local`, then run `db:deploy` and `db:seed` for normal use. The verification processes are stopped after checking.
+
+| Check | Actual final result |
+| --- | --- |
+| `npm test` | PASS, exit 0: 74 reference + 109 API tests = 183 passed, 0 failed/skipped. |
+| `npm run test:integration` with isolated `TEST_DATABASE_URL` | PASS, exit 0: 12 real PostgreSQL/HTTP tests, 0 failed/skipped. Both roles/shared cohort, wrong credentials/tokens, expiry, session switching/revocation, API/store recreation, failed durable save, unavailable pinned version, SINGLE/TIED snapshots and report isolation, immutable-result/completion constraints and secure-cookie/proxy behavior. |
+| `npm run test:built` | PASS, exit 0: 3 packaged-source/scorer tests. Combined total: 198 tests passed. |
+| `npm run typecheck` | PASS, exit 0: API/web/reference strict types; API also enforces Node-compatible erasable TypeScript syntax. |
+| `npm run lint` | PASS, exit 0, no errors/warnings. |
+| `npm run db:validate` | PASS, exit 0. |
+| `npm run build` | PASS, exit 0: packaged API and optimized Next build; `/login` is dynamic. |
+| `npm run db:deploy` twice on isolated verification DB | PASS, both exit 0: migration applied, then no pending migrations. |
+| `npm run db:seed` twice on isolated verification DB | PASS, both exit 0: two distinct roles, existing hashes preserved. |
+| `npm run db:check` on isolated verification DB | PASS, exit 0: Prisma SELECT 1. |
+| Built same-origin smoke | PASS: login HTML/no-store, health rewrite, forwarded cookie, login/me, invitation creation, logout and old-cookie rejection. |
+| Browser check of built frontend | PASS: facilitator login, switch to manager, refresh preserves manager, logout removes identity. |
+| `npm ci --dry-run --ignore-scripts --offline --no-audit --no-fund` | PASS, exit 0: lockfile/manifests agree. |
+| `git diff --check` | PASS, exit 0. |
+
+Integration tests require a separate `TEST_DATABASE_URL`; missing configuration fails explicitly rather than skipping. They create and drop only a random `disc_test_*` schema within that database, and use fictional staff/participants. They apply the same committed SQL migration used by `db:deploy`. They never truncate/reset public tables. Seed/result fixtures are inserted directly for access testing; they do not add a premature scoring/submission API.
+
+Phase 3 changed files: `.env.example`, `README.md`, root `package.json`/`package-lock.json`, `apps/api/package.json`, `apps/api/prisma.config.ts`, `apps/api/prisma/schema.prisma`, `apps/api/src/app.ts`, `apps/api/src/env.ts`, `apps/api/src/server.ts`, `apps/api/tsconfig.json`, `apps/web/next.config.mjs` and Next's generated `apps/web/next-env.d.ts` (production type paths).
+
+Phase 3 added files:
+
+```text
+apps/api/prisma/migrations/migration_lock.toml
+apps/api/prisma/migrations/202610160001_phase3_access/migration.sql
+apps/api/src/auth/password.ts
+apps/api/src/auth/seed.ts
+apps/api/src/auth/session.ts
+apps/api/src/db/seed.ts
+apps/api/src/http/access.ts
+apps/api/src/http/errors.ts
+apps/api/src/http/reports.ts
+apps/api/test/access.test.ts
+apps/api/test/integration/access.test.ts
+apps/web/src/app/login/page.tsx
+apps/web/src/app/login/login-form.tsx
+```
+
+## Phase 4 — confirmed assessment and atomic completion
+
+`/invite/[token]` renders a read-only invitation; only its **Start or continue** button posts to `/api/invitations/redeem`. Successful redemption waits for the rotated PostgreSQL session to be saved, then replaces the current URL with `/assessment` or `/result`. New invitations now use the requested path route. Existing Phase 3 `/invite#token=…` links still work through a render-only compatibility page. Invitation/assessment/receipt pages are dynamic and send no-store, no-referrer and noindex headers. Next development request logging is disabled so path tokens are not logged; deployment access logs must also redact `/invite/*` paths.
+
+`GET /api/assessment` returns only status, assessment version, group IDs/sequence, visible English/Arabic words with opaque IDs, and the current participant's confirmed rankings/timestamps. It never creates answers or returns dimensions, rank weights, profile mappings or private source data. A completed participant gets a clean result destination without loading a newer seed.
+
+The frontend uses modern `@dnd-kit/react` **0.5.1**, compatible with the pinned React 19 version, plus labelled Move Up/Down buttons. Dragging and keyboard controls edit the same ordered ID array. Each move has a live announcement; focus follows group changes and the controls have visible focus and 44px targets. English and Arabic text are shown together without a language-toggle dependency.
+
+Every Next action explicitly PUTs the current order, even if unchanged. Only a successful committed save marks it confirmed and advances. Back preserves local drafts; refresh/redeem resumes saved PostgreSQL answers and the first unconfirmed group. Untouched groups have no Answer row. A failed save keeps the current order and group and offers retry. A synchronous in-flight latch and disabled controls serialize actions. The last group must be separately confirmed before Submit enables. Submit always flushes that group again and awaits it before POSTing submission. Dirty drafts elsewhere prevent submission. A completed conflict, including retry after a lost submit response, resolves to the stored result rather than attempting another edit.
+
+| Endpoint | Phase 4 behavior |
+| --- | --- |
+| `GET /api/assessment` | Participant only, consistent read snapshot, public words plus own confirmed answers; no default-answer writes. |
+| `PUT /api/assessment/answers/:groupId` | Participant only, JSON `{rankedWordIds}` only. Under a Participant `FOR UPDATE` lock, check status/pinned policies, validate the exact four-word permutation, then upsert one confirmed answer. |
+| `POST /api/assessment/submit` | Participant only, JSON `{}`. Acquire the same parent-row lock before checking status. If already completed, return the immutable stored result immediately. Otherwise validate all 14 confirmed groups, score once, insert the full versioned result/candidate snapshot and mark COMPLETED in the same transaction. |
+
+Writes use parameterized SQL row locks in Prisma Read Committed transactions. The existing unique result constraint and SQL completion/immutability checks remain safeguards. Late valid answer writes return 409. Incomplete or corrupt saved assessments return 409 without creating a result. Invalid PUT payloads return 400. Origin/JSON checks, staff-versus-participant authorization and no-store behavior from Phase 3 remain active. Participant IDs always come from the session.
+
+`/result` is the Phase 4 completion receipt: SINGLE or TIED, every candidate's exact stored code and N-slogan name/description, and a locked-answer confirmation. It reads the participant-owned stored result. The full score table/chart/ranking/report layout remains Phase 5; no dashboard or deployment work was added. No schema change or new migration is needed for this phase because Phase 3 already created the Answer/Result models.
+
+### Phase 4 verification — 16 October 2026
+
+Checks used the existing isolated local PostgreSQL **18.6** verification runtime with fictional participants and staff. The intended user database credentials remain unconfigured. Browser fixtures used a separate `disc_phase4_verification` database; integration suites each created/dropped their own random schema. Temporary failure/delay triggers were scoped to fictional browser participants and removed after verification. Frontend/API test processes and the test database server are stopped after checking.
+
+| Check | Actual final result |
+| --- | --- |
+| `npm test` | PASS, exit 0: 74 reference + 109 API tests = 183 passed, 0 failed/skipped. |
+| `npm run test:integration` | PASS, exit 0: 26 real PostgreSQL/HTTP tests = 12 access + 14 assessment tests, 0 failed/skipped. |
+| `npm run test:built` | PASS, exit 0: 3 packaged-source tests. Combined total across commands: **212 passed**. |
+| `npm run lint` | PASS, exit 0, no errors/warnings. |
+| `npm run typecheck` | PASS, exit 0: API, web and reference. |
+| `npm run db:validate` | PASS, exit 0; existing schema unchanged in Phase 4. |
+| `npm run build` | PASS, exit 0: compiled API, packaged private seed and optimized Next build; invite, assessment and result routes dynamic. |
+| Migration/seed for browser DB | PASS: existing committed migration applied and separate fictional staff accounts explicitly seeded. |
+| `npm ci --dry-run --ignore-scripts --offline --no-audit --no-fund` | PASS, exit 0: manifests and lockfile agree. |
+| `git diff --check` | PASS, exit 0. |
+
+Assessment integration tests verify DTO allowlists and ownership, no untouched answers, unchanged-order confirmation, exact/foreign/invalid IDs, failed-save rollback/retry/resume, missing/corrupt saved groups, all SINGLE/tie examples (including all-four and lower-only ties), completion rollback and immutable old-version retries. Eight simultaneous submits are held behind an actual PostgreSQL parent-row lock and return the same single stored result. Both answer-first and submit-first races use real lock queues observed through `pg_stat_activity`: the earlier answer is scored, or the late answer is rejected. These are database tests, not simulated mutex tests.
+
+Browser verification used the built frontend through the real same-origin rewrite at **375px width**. Confirmed: invite GET leaves INVITED/zero answers; explicit Start reaches a token-free URL; Enter on Move Down reorders and retains focus; pointer drag reorders; no horizontal overflow; database-induced failure leaves edits/group/count unchanged; retry saves once; Back and refresh restore the saved order. Thirteen unchanged-order keyboard confirmations produced exactly 13 rows and left Submit disabled. A final unsaved edit survived Back/Next, then final confirmation produced 14 rows. A forced final-flush failure/timeout kept IN_PROGRESS and zero results, with all actions disabled while pending. Removing the test gate and retrying completed atomically with 14 answers, one SINGLE result and total 140. Reopening `/assessment` returned the stored locked completion receipt. All TIED completion variants and candidate snapshots are additionally covered by the PostgreSQL HTTP suite.
+
+Phase 4 modified files: `README.md`, `package-lock.json`, `apps/web/package.json`, `apps/web/next.config.mjs`, `apps/api/src/app.ts` and the invitation URL helper in `apps/api/test/integration/access.test.ts`. Phase 3 changes already present in the working tree were retained.
+
+Phase 4 added files:
+
+```text
+apps/api/src/services/assessment.ts
+apps/api/test/integration/assessment.test.ts
+apps/web/src/lib/http.ts
+apps/web/src/lib/assessment-types.ts
+apps/web/src/components/assessment.module.css
+apps/web/src/components/ranked-words.tsx
+apps/web/src/app/invite/page.tsx
+apps/web/src/app/invite/[token]/page.tsx
+apps/web/src/app/invite/invite-start.tsx
+apps/web/src/app/assessment/page.tsx
+apps/web/src/app/assessment/assessment-flow.tsx
+apps/web/src/app/result/page.tsx
+apps/web/src/app/result/completion.tsx
+```
+
+Implementation references: [PostgreSQL row locks](https://www.postgresql.org/docs/18/explicit-locking.html), [Prisma transactions](https://www.prisma.io/docs/orm/fundamentals/transactions), and [modern dnd-kit sortable state](https://dndkit.com/react/guides/sortable-state-management/).
