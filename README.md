@@ -1,6 +1,6 @@
-# DISC prototype — Phases 1–4
+# DISC prototype — Phases 1–5
 
-Next.js App Router/React, the Express scoring domain, PostgreSQL models/sessions, staff login, invitations and the complete confirm/save/resume/submit assessment flow are implemented. Open `/login` for staff, or use a generated `/invite/[token]` link for participants. `/result` is a small completion receipt with all stored candidate source texts; full report scores/ranking/charts and dashboards remain later phases. The root page remains empty.
+Next.js App Router/React, the Express scoring domain, PostgreSQL models/sessions, staff login, invitations, the complete confirm/save/resume/submit assessment flow and stored participant/staff reports are implemented. Open `/login` for staff, or use a generated `/invite/[token]` link for participants. `/result` shows the participant's saved scores, shared ranking groups, chart/table and every candidate's source slogan. Staff reports are at `/staff/participants/[id]/report`. Dashboards remain a later phase. The root page remains empty.
 
 The original playbook, private seed, workbook and reference scorer/tests are preserved. Start with `README_START_HERE.md` for the complete phase sequence.
 
@@ -371,3 +371,34 @@ apps/web/src/app/result/completion.tsx
 ```
 
 Implementation references: [PostgreSQL row locks](https://www.postgresql.org/docs/18/explicit-locking.html), [Prisma transactions](https://www.prisma.io/docs/orm/fundamentals/transactions), and [modern dnd-kit sortable state](https://dndkit.com/react/guides/sortable-state-management/).
+
+## Phase 5: stored participant and staff reports
+
+`/result` replaces the Phase 4 receipt with the participant-owned report from `GET /api/assessment/result`. `/staff/participants/[id]/report` reads `GET /api/participants/:id/report`; FACILITATOR and MANAGER retain access to the shared demo cohort. Both routes use the same presentation component and fetch with no-store caching. The staff route is dynamic and sends private no-store/no-referrer/noindex headers. Its initial HTML contains no participant data; the role-protected API supplies authorized content. No staff listing/dashboard work is included in this phase.
+
+Reports render the stored four scores, total, exact shared-rank groups and a fixed 0–56 chart plus accessible table. SINGLE displays its ordered code; TIED explicitly labels the tie and shows every stored candidate without selecting a winner. Each candidate shows the exact saved N source name/short description once when those fields match. Null English descriptions are accepted silently. DI and ID retain their distinct slogans. Four equal scores show all 12 candidates; a third/fourth-place tie alone leaves the uniquely highest two as SINGLE. No browser scoring, source lookup, private mapping import or completed-result update occurs.
+
+Pending invitations and in-progress assessments show “Report pending” with no provisional scores. Authentication, forbidden and nonexistent-report responses have distinct messages; failed requests offer Reload report. Participants can return to their assessment from a pending own report. Stored versions and candidate content remain the API's existing pinned snapshots, including older versions.
+
+### Phase 5 verification — 16 October 2026
+
+All checks passed: `npm test` **193** (74 reference + 109 API + 10 report-render tests), `npm run test:integration` **35** (12 access + 14 assessment + 9 reports), `npm run test:built` **3**. Across these commands: **231 passed, 0 failed/skipped**. Lint, typecheck, Prisma validation, API/optimized Next build, offline lockfile dry-run and whitespace checks exited 0. The whitespace check reports existing LF/CRLF conversion notices. Runtime/library versions remain those recorded above; actual database verification used PostgreSQL **18.6**.
+
+Browser checks used the built app and fictional participants in a separate local database: DI versus ID, DI/ID, DI/DS, all-four/lower-only ties, exact slogans, pending states, own/staff access and a 375px mobile report. [Screenshots, observed cases and exact command results](artifacts/phase5/EVIDENCE.md) are saved in the repository. Intended user database credentials remain unconfigured. Temporary verification processes were stopped; no deployment was performed.
+
+Phase 5 modified files: `README.md`, `package.json`, `eslint.config.mjs`, `apps/web/next.config.mjs`, `apps/web/src/lib/assessment-types.ts` and `apps/web/src/app/result/page.tsx`. The obsolete `apps/web/src/app/result/completion.tsx` was removed. Earlier-phase changes already present in the working tree and included reference files were preserved.
+
+Phase 5 added files:
+
+```text
+apps/web/src/lib/report-types.ts
+apps/web/src/components/report.module.css
+apps/web/src/components/stored-report.tsx
+apps/web/src/components/report-screen.tsx
+apps/web/src/app/staff/participants/[id]/report/page.tsx
+apps/api/test/integration/reports.test.ts
+tests/report-render.test.ts
+tsconfig.tests.json
+artifacts/phase5/EVIDENCE.md
+artifacts/phase5/*.jpg
+```

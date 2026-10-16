@@ -1,0 +1,34 @@
+.page { max-width: 64rem; margin: 2rem auto; padding: 1rem; color: #162432; font-family: system-ui, sans-serif; line-height: 1.5; }
+.page h1 { margin-bottom: .35rem; }
+.page button, .page a { min-height: 44px; display: inline-flex; align-items: center; padding: .5rem .75rem; border-radius: .35rem; }
+.page button { border: 1px solid #627888; background: white; color: #162432; cursor: pointer; font: inherit; }
+.page button:focus-visible, .page a:focus-visible { outline: 3px solid #0866b0; outline-offset: 3px; }
+.muted { color: #405565; }
+.status { display: inline-block; padding: .2rem .65rem; border: 1px solid #176079; border-radius: .35rem; color: #134f70; background: #edf7fa; }
+.profiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: .75rem; }
+.profileCard { border: 1px solid #9bb2c0; border-radius: .5rem; background: #f8fbfc; padding: .8rem 1rem; overflow-wrap: anywhere; }
+.profileCard h3 { margin: .25rem 0; font-size: 1.2rem; }
+.profileCard p { margin-bottom: .25rem; }
+.scoreLayout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 1.5rem; margin: 1.5rem 0; }
+.panel { min-width: 0; border: 1px solid #b5c7d1; border-radius: .5rem; padding: 1rem; }
+.panel h2 { margin-top: 0; font-size: 1.15rem; }
+.chart { margin: 0; }
+.chart figcaption { font-weight: 650; margin-bottom: 1rem; }
+.chartRow { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) 2.5rem; gap: .5rem; align-items: center; margin: .8rem 0; }
+.track { background-color: #edf2f5; background-image: linear-gradient(to right, transparent calc(100% - 1px), #c2d1da 0); background-size: 25% 100%; height: 1.5rem; border-left: 1px solid #627888; border-right: 1px solid #627888; }
+.bar { display: block; height: 100%; background: #176079; }
+.value { text-align: right; font-variant-numeric: tabular-nums; }
+.axis { display: flex; justify-content: space-between; font-size: .8rem; color: #405565; }
+.ranking { list-style: none; padding: 0; }
+.ranking li { padding: .6rem 0; border-bottom: 1px solid #d5e1e7; }
+.table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.table caption { text-align: left; font-weight: 650; margin-bottom: .6rem; }
+.table th, .table td { padding: .65rem; border-bottom: 1px solid #c2d1da; text-align: left; }
+.table thead { background: #edf2f5; }
+.notice { padding: 1rem; border: 1px solid #9bb2c0; border-radius: .5rem; margin: 1.5rem 0; }
+@media (max-width: 640px) {
+  .page { padding: .75rem; margin: .5rem auto; }
+  .scoreLayout { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+  .panel { padding: .75rem; }
+  .table th, .table td { padding: .5rem; }
+}

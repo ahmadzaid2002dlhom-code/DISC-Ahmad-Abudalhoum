@@ -1,7 +1,7 @@
 import { connection } from 'next/server';
-import Completion from './completion';
+import ReportScreen from '../../components/report-screen';
 
-export default async function ResultReceipt() {
+export default async function Result() {
   await connection();
-  return <Completion />;
+  return <ReportScreen />;
 }

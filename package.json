@@ -13,9 +13,10 @@
   "scripts": {
     "check:pack": "node --test reference/scoring.test.ts",
     "dev": "concurrently --kill-others --names api,web \"npm run dev --workspace @disc/api\" \"npm run dev --workspace @disc/web\"",
-    "lint": "eslint apps scripts eslint.config.mjs",
-    "typecheck": "npm run db:generate && npm run typecheck --workspaces && tsc --project tsconfig.reference.json",
-    "test": "npm run check:pack && npm run test --workspaces --if-present",
+    "lint": "eslint apps scripts tests eslint.config.mjs",
+    "typecheck": "npm run db:generate && npm run typecheck --workspaces && tsc --project tsconfig.reference.json && tsc --project tsconfig.tests.json",
+    "test": "npm run check:pack && npm run test --workspaces --if-present && npm run test:reports",
+    "test:reports": "node --test tests/report-render.test.ts",
     "test:built": "npm run test:built --workspace @disc/api",
     "build": "npm run build --workspace @disc/api && npm run build --workspace @disc/web",
     "start:api": "npm run start --workspace @disc/api",

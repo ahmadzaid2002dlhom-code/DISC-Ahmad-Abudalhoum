@@ -15,7 +15,7 @@ export default defineConfig([
     extends: [js.configs.recommended],
   },
   {
-    files: ['apps/api/**/*.ts', 'apps/web/**/*.{ts,tsx}'],
+    files: ['apps/api/**/*.ts', 'apps/web/**/*.{ts,tsx}', 'tests/**/*.ts'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
   },
   {
@@ -32,7 +32,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['scripts/**/*.mjs', 'apps/api/**/*.ts', 'apps/web/next.config.mjs'],
+    files: ['scripts/**/*.mjs', 'apps/api/**/*.ts', 'apps/web/next.config.mjs', 'tests/**/*.ts'],
     languageOptions: {
       globals: { process: 'readonly', console: 'readonly', URL: 'readonly', fetch: 'readonly' },
     },
