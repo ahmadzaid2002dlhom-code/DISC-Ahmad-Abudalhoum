@@ -9,7 +9,9 @@ import { loadAssessmentSeed } from './data/assessment.ts';
 import { HttpError, objectBody, requiredText, emailAddress } from './http/errors.ts';
 import { requireParticipant, requireStaff } from './http/access.ts';
 import { resultDto } from './http/reports.ts';
+import { participantDto } from './http/participants.ts';
 import { readAssessment, saveAnswer, submitAssessment } from './services/assessment.ts';
+import { readCohort, readManagerSummary } from './services/cohort.ts';
 
 export const inviteHash = (token: string): string => createHash('sha256').update(token).digest('hex');
 const uuid = /^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i;
@@ -102,8 +104,7 @@ export function createApp({ db, config }: { db: PrismaClient; config: SecurityCo
     response.status(201).json({ participant: participantDto(participant), invitationUrl: `${config.appOrigin}/invite/${token}` });
   });
   app.get('/api/participants', async (_request, response) => {
-    const participants = await db.participant.findMany({ orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], include: { result: true } });
-    response.json({ participants: participants.map(p => ({ ...participantDto(p), result: p.status === 'COMPLETED' && p.result ? resultDto(p.result) : null })) });
+    response.json({ participants: await readCohort(db) });
   });
   app.get('/api/participants/:id/report', async (request, response) => {
     if (!uuid.test(request.params.id as string)) throw new HttpError(404, 'Participant not found.');
@@ -155,8 +156,10 @@ export function createApp({ db, config }: { db: PrismaClient; config: SecurityCo
     if (participant.status !== 'COMPLETED' || !result) throw new HttpError(409, 'Assessment is not completed.');
     response.json({ result: resultDto(result) });
   });
-  // The analytics implementation belongs to Phase 6; its entire namespace is protected now.
   app.use('/api/manager', requireStaff(db, 'MANAGER'));
+  app.get('/api/manager/summary', async (_request, response) => {
+    response.json(await readManagerSummary(db));
+  });
   notFound(app);
   const errors: ErrorRequestHandler = (error: unknown, _request, response, _next) => {
     void _next;
@@ -168,13 +171,4 @@ export function createApp({ db, config }: { db: PrismaClient; config: SecurityCo
   };
   app.use(errors);
   return app;
-}
-
-function participantDto(participant: Participant) {
-  return {
-    id: participant.id, name: participant.name, email: participant.email, status: participant.status,
-    assessmentVersion: participant.assessmentVersion, scoringPolicyVersion: participant.scoringPolicyVersion,
-    profileTextPolicyVersion: participant.profileTextPolicyVersion, inviteExpiresAt: participant.inviteExpiresAt,
-    createdAt: participant.createdAt, startedAt: participant.startedAt, completedAt: participant.completedAt,
-  };
 }

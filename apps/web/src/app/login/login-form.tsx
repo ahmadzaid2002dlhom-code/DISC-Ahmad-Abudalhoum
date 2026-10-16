@@ -58,6 +58,10 @@ export default function LoginForm() {
     <p>Facilitators and managers use their separate staff accounts.</p>
     {principal && <section aria-label="Current session">
       <p>Signed in as {principal.type === 'STAFF' ? `${principal.email} (${principal.role})` : principal.name}.</p>
+      {principal.type === 'STAFF' && <nav aria-label="Staff pages">
+        <p><a href="/facilitator">Participant management</a></p>
+        {principal.role === 'MANAGER' && <p><a href="/manager">Manager dashboard</a></p>}
+      </nav>}
       <button type="button" onClick={() => void logout()} disabled={busy}>Sign out</button>
       <p>Signing in below replaces this session.</p>
     </section>}

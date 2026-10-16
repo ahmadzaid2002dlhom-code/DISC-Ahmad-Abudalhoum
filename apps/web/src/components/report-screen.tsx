@@ -29,6 +29,7 @@ export default function ReportScreen({ participantId }: { participantId?: string
 
   return <main className={styles.page}>
     <h1>{staff ? 'Participant report' : 'Your DISC result'}</h1>
+    {staff && <nav aria-label="Staff navigation"><a href="/facilitator">Participant management</a></nav>}
     {report ? <>
       {report.participant && <p>{report.participant.name}</p>}
       <StoredReport result={report.result} />

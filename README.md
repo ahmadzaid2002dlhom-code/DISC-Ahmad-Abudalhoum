@@ -1,6 +1,6 @@
-# DISC prototype — Phases 1–5
+# DISC prototype — Phases 1–6
 
-Next.js App Router/React, the Express scoring domain, PostgreSQL models/sessions, staff login, invitations, the complete confirm/save/resume/submit assessment flow and stored participant/staff reports are implemented. Open `/login` for staff, or use a generated `/invite/[token]` link for participants. `/result` shows the participant's saved scores, shared ranking groups, chart/table and every candidate's source slogan. Staff reports are at `/staff/participants/[id]/report`. Dashboards remain a later phase. The root page remains empty.
+Next.js App Router/React, the Express scoring domain, PostgreSQL models/sessions, staff login, invitations, the complete assessment flow, stored reports and staff dashboards are implemented. Open `/login` for staff navigation: both staff roles can use `/facilitator` to create invitations and view participant rows; only MANAGER can use `/manager` for cohort analytics. Participants use generated `/invite/[token]` links and their stored `/result`. Staff full reports are at `/staff/participants/[id]/report`. The root page remains empty.
 
 The original playbook, private seed, workbook and reference scorer/tests are preserved. Start with `README_START_HERE.md` for the complete phase sequence.
 
@@ -401,4 +401,55 @@ tests/report-render.test.ts
 tsconfig.tests.json
 artifacts/phase5/EVIDENCE.md
 artifacts/phase5/*.jpg
+```
+
+## Phase 6: persisted staff tables and manager overview
+
+`/facilitator` provides invitation creation/copy and a shared participant table for FACILITATOR and MANAGER. `/manager` adds manager-only cohort analytics and uses the same table/form. Login now links to the authorized screens, and staff reports link back to participant management. Both screens render dynamically, fetch no-store and send no-store/no-referrer/noindex headers. Initial HTML contains no cohort data; all data comes from the role-protected Express APIs.
+
+Tables show status, four stored completed scores, SINGLE ordered code or every TIED candidate with its exact saved N source name, and completed full-report links. Pending rows show dashes and no final profile/report link. Existing snapshot text is used without re-scoring or current-seed substitution. The focusable horizontal table region supports small screens and keyboard scrolling.
+
+Creating an invitation uses the existing Origin-protected `POST /api/participants`. The returned link remains visible for copying, including while the table refreshes; clipboard failures offer manual selection/copy. A newly created row is loaded from PostgreSQL. Subsequent list/summary reads never return tokens or hashes; invitation links are returned only at creation. No delivery integration or token-retrieval feature was added.
+
+`GET /api/participants` now reads the shared cohort in a PostgreSQL **Repeatable Read** transaction so participant and Result relation queries share one snapshot. `GET /api/manager/summary` is MANAGER-only and derives its participant table and every metric from that same materialized cohort read:
+
+| Response field | Definition |
+| --- | --- |
+| `totalInvited` | N = all Participant invitation records, regardless of status |
+| `completed` | K = COMPLETED participants with stored results, including TIED |
+| `pending` | P = INVITED + IN_PROGRESS |
+| `completionPercentage` | `100 * K / N`, or 0 when N=0; UI rounds to two decimals |
+| `distribution` | All 12 ordered SINGLE code keys plus one exclusive TIED key; each completed participant counted once; sum=K |
+| `means` | D/I/S/C raw score averages across all K completed results, including TIED; null when K=0; UI rounds to two decimals |
+| `participants` | Same snapshot and stored-result DTOs used for the displayed table |
+
+There are no separate count/mean queries, per-staff ownership filters, optimistic fake totals or per-candidate distribution counts. Failed refreshes retain the complete previous snapshot with an explicit retry message; authorization failures remove it. Every request rechecks the persisted staff role. No schema migration, dependency or scoring change is required.
+
+### Phase 6 verification — 16 October 2026
+
+Final checks: `npm test` **201 passed** (74 reference + 109 API + 18 React rendering tests), `npm run test:integration` **43 passed** (12 access + 14 assessment + 9 reports + 8 cohort), and `npm run test:built` **3 passed**. Combined: **247 passed, 0 failed/skipped**. Typecheck, lint, optimized API/Next build, Prisma validation, offline lockfile dry-run and whitespace checks exited 0. Existing dependency versions remain unchanged; real DB tests used PostgreSQL **18.6**.
+
+The six-person fixture verified N=6, K=4, P=2; completion `100*4/6`; distribution CD=1, DI=1, IS=1, TIED=1; means D/I/S/C = 40.25/40.25/31.5/28. Empty, no-completed, all-tied and all-12-SINGLE cohorts passed real PostgreSQL tests. A controlled concurrent completion held a real Result-table lock while the HTTP summary read waited: the response kept the old complete snapshot, and the next request returned the new completion. Anonymous/participant/facilitator analytics access, live manager-role revocation, both-role shared lists and creation-only invitation links were tested.
+
+The built browser flow verified the six persisted participants, exact summary/table values, source text, full-report navigation, facilitator denial, invitation creation/copy, refresh persistence and 375px keyboard table scrolling. An added invitation changed the live summary to N=7, K=4, P=3 without changing the completed distribution or means. [Screenshots and detailed evidence](artifacts/phase6/EVIDENCE.md) use only fictional records in a separate local database; intended user database credentials remain unconfigured. Temporary app/database processes were stopped. No deployment, commit or push was performed for Phase 6.
+
+Phase 6 modified files: `README.md`, `package.json`, `apps/api/src/app.ts`, `apps/api/test/integration/access.test.ts`, `apps/web/next.config.mjs`, `apps/web/src/app/login/login-form.tsx` and `apps/web/src/components/report-screen.tsx`.
+
+Phase 6 added files:
+
+```text
+apps/api/src/http/participants.ts
+apps/api/src/services/cohort.ts
+apps/api/test/integration/cohort.test.ts
+apps/web/src/app/facilitator/page.tsx
+apps/web/src/app/manager/page.tsx
+apps/web/src/lib/staff-types.ts
+apps/web/src/components/staff.module.css
+apps/web/src/components/staff-screen.tsx
+apps/web/src/components/invite-form.tsx
+apps/web/src/components/participant-table.tsx
+apps/web/src/components/manager-metrics.tsx
+tests/staff-render.test.ts
+artifacts/phase6/EVIDENCE.md
+artifacts/phase6/*.jpg
 ```

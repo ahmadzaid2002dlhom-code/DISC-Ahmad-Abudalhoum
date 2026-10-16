@@ -112,7 +112,7 @@ test('both roles authenticate, share invitations and enforce manager-only bounda
     assert.equal((await browser.request('/api/assessment/result')).status, 403);
   }
   assert.equal((await facilitator.request('/api/manager/summary')).status, 403);
-  assert.equal((await manager.request('/api/manager/summary')).status, 404); // authorized; Phase 6 route not implemented
+  assert.equal((await manager.request('/api/manager/summary')).status, 200);
   const first = await invite(facilitator);
   const second = await invite(manager);
   for (const browser of [facilitator, manager]) {
