@@ -1,0 +1,41 @@
+{
+  "name": "disc-assessment",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.11.0 <25"
+  },
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "scripts": {
+    "check:pack": "node --test reference/scoring.test.ts",
+    "dev": "concurrently --kill-others --names api,web \"npm run dev --workspace @disc/api\" \"npm run dev --workspace @disc/web\"",
+    "lint": "eslint apps scripts eslint.config.mjs",
+    "typecheck": "npm run db:generate && npm run typecheck --workspaces && tsc --project tsconfig.reference.json",
+    "test": "npm run check:pack && npm run test --workspaces --if-present",
+    "test:built": "npm run test:built --workspace @disc/api",
+    "build": "npm run build --workspace @disc/api && npm run build --workspace @disc/web",
+    "start:api": "npm run start --workspace @disc/api",
+    "start:web": "npm run start --workspace @disc/web",
+    "db:generate": "npm run db:generate --workspace @disc/api",
+    "db:validate": "npm run db:validate --workspace @disc/api",
+    "db:check": "npm run db:check --workspace @disc/api",
+    "db:migrate": "npm run db:migrate --workspace @disc/api",
+    "db:deploy": "npm run db:deploy --workspace @disc/api"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "concurrently": "10.0.6",
+    "eslint": "10.13.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2"
+  },
+  "allowScripts": {
+    "prisma@7.10.1": true,
+    "@prisma/engines@7.10.1": true
+  }
+}
