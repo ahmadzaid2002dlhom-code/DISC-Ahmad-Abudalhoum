@@ -22,6 +22,14 @@ export default defineConfig([
     files: webFiles,
     extends: [nextPlugin.configs['core-web-vitals']],
     settings: { next: { rootDir: 'apps/web/' } },
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['@disc/api', '@disc/api/*', '**/api/**', '**/disc-assessment-seed.json', '**/reference/**'],
+          message: 'Assessment source, mappings and scoring belong only in the Express API.',
+        }],
+      }],
+    },
   },
   {
     files: ['scripts/**/*.mjs', 'apps/api/**/*.ts', 'apps/web/next.config.mjs'],

@@ -7,7 +7,8 @@
     "dev": "node --watch src/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --test test/*.test.ts",
-    "build": "prisma generate && tsc --project tsconfig.build.json",
+    "test:built": "node --test test/build/*.test.ts",
+    "build": "prisma generate && tsc --project tsconfig.build.json && node ../../scripts/package-api-seed.mjs",
     "start": "node dist/server.js",
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
@@ -24,6 +25,8 @@
   "devDependencies": {
     "@types/express": "5.0.6",
     "@types/pg": "8.23.1",
+    "fast-xml-parser": "5.11.2",
+    "fflate": "0.8.3",
     "prisma": "7.10.1"
   }
 }

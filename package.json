@@ -16,6 +16,7 @@
     "lint": "eslint apps scripts eslint.config.mjs",
     "typecheck": "npm run db:generate && npm run typecheck --workspaces && tsc --project tsconfig.reference.json",
     "test": "npm run check:pack && npm run test --workspaces --if-present",
+    "test:built": "npm run test:built --workspace @disc/api",
     "build": "npm run build --workspace @disc/api && npm run build --workspace @disc/web",
     "start:api": "npm run start --workspace @disc/api",
     "start:web": "npm run start --workspace @disc/web",

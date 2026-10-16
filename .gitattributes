@@ -1,0 +1,3 @@
+# These approved source bytes are fingerprinted; preserve them across checkouts.
+data/disc-assessment-seed.json -text
+reference/New_DISC_online.xlsx binary
