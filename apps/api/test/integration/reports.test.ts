@@ -12,7 +12,7 @@ import { createApp, inviteHash } from '../../src/app.ts';
 import { seedStaff } from '../../src/auth/seed.ts';
 import { getSecurityConfig } from '../../src/env.ts';
 import { scoreAssessment, type Answer } from '../../src/domain/scoring.ts';
-import { seed, order, mixed } from '../helpers/assessment.ts';
+import { seed, order, mixed, visibleProfiles } from '../helpers/assessment.ts';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (!connectionString) throw new Error('Set TEST_DATABASE_URL for real stored-report tests.');
@@ -65,7 +65,7 @@ async function fixture(answers?: Answer[], legacy = false) {
   return { participant, token, expected: {
     scores: scored.scores, totalPoints: scored.totalPoints, scoreRanking: scored.scoreRanking, tiedScoreGroups: scored.tiedScoreGroups,
     profileStatus: scored.profileStatus, profileCode: scored.profileCode, candidateProfileCodes: scored.candidateProfileCodes,
-    candidateProfiles: scored.candidateProfiles, completedAt: completedAt.toISOString(), ...versions,
+    candidateProfiles: visibleProfiles(scored.candidateProfiles), completedAt: completedAt.toISOString(), ...versions,
   } };
 }
 

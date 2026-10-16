@@ -12,7 +12,7 @@ import { PrismaClient, type Prisma } from '../../src/generated/prisma/client.ts'
 import { createApp, inviteHash } from '../../src/app.ts';
 import { getSecurityConfig } from '../../src/env.ts';
 import { scoreAssessment, type Answer, type AssessmentScores } from '../../src/domain/scoring.ts';
-import { seed, order, mixed } from '../helpers/assessment.ts';
+import { seed, order, mixed, visibleProfiles } from '../helpers/assessment.ts';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (!connectionString) throw new Error('Set TEST_DATABASE_URL for real PostgreSQL assessment tests.');
@@ -62,7 +62,7 @@ async function assertStored(browser: ParticipantBrowser, expected: AssessmentSco
   assert.equal(await db.result.count({ where: { participantId: browser.id } }), 1);
   const { result } = await (await browser.request('/api/assessment/result')).json();
   for (const key of ['scores', 'profileStatus', 'profileCode', 'scoreRanking', 'tiedScoreGroups', 'candidateProfileCodes', 'candidateProfiles', 'assessmentVersion', 'scoringPolicyVersion', 'profileTextPolicyVersion'] as const) {
-    assert.deepEqual(result[key], expected[key]);
+    assert.deepEqual(result[key], key === 'candidateProfiles' ? visibleProfiles(expected.candidateProfiles) : expected[key]);
   }
   return result;
 }

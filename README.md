@@ -1,6 +1,8 @@
-# DISC prototype — Phases 1–6
+# DISC prototype — Phases 1–7
 
 Next.js App Router/React, the Express scoring domain, PostgreSQL models/sessions, staff login, invitations, the complete assessment flow, stored reports and staff dashboards are implemented. Open `/login` for staff navigation: both staff roles can use `/facilitator` to create invitations and view participant rows; only MANAGER can use `/manager` for cohort analytics. Participants use generated `/invite/[token]` links and their stored `/result`. Staff full reports are at `/staff/participants/[id]/report`. The root page remains empty.
+
+Phase 7 adds isolated Playwright browser QA and narrows public report candidate DTOs. [Full Phase 7 audit and remaining findings](artifacts/phase7/EVIDENCE.md). No deployment has been performed.
 
 The original playbook, private seed, workbook and reference scorer/tests are preserved. Start with `README_START_HERE.md` for the complete phase sequence.
 
@@ -453,3 +455,51 @@ tests/staff-render.test.ts
 artifacts/phase6/EVIDENCE.md
 artifacts/phase6/*.jpg
 ```
+
+## Phase 7: full QA and privacy cleanup
+
+Confirmed privacy fix: public result candidates now return only `code`, `nameAr`, `descriptionAr` and nullable `descriptionEn`. Raw P/Q/R, label/source-row provenance and the complete original candidate snapshot remain private in PostgreSQL. The same DTO serves submit/retry, own results, staff reports and cohort tables. All N text, scores, candidate codes, policy versions and completion timestamps are preserved. A regression asserts all 12 exact slogans survive this allowlist and that reading leaves the stored snapshot unchanged.
+
+Playwright **1.64.1** was explicitly authorized as a development-only dependency. The tested Chromium build is **156.0.8078.4** (revision 1248); Node **24.19.0**, npm **11.17.0** and PostgreSQL **18.6** were used. Existing runtime dependency versions are unchanged.
+
+```sh
+npm ci
+npx playwright install chromium
+npm run db:generate
+npm run lint
+npm run typecheck
+npm test
+npm run test:integration
+npm run build
+npm run test:built
+npm run test:e2e
+git diff --check
+```
+
+Set `TEST_DATABASE_URL` securely for a separate PostgreSQL test instance. Integration suites create/drop only their random schemas. E2E additionally requires CREATE DATABASE permission: it creates a fresh `disc_e2e_<random>` database, applies the existing migration, seeds fictional staff, starts the compiled API and optimized frontend, runs Chromium, stops both services and drops only that exact test database. Ports 3000 and 4000 must be free; existing services are never reused or killed. Build first with the default same-origin rewrite target `http://localhost:4000`. The harness does not use or reset `DATABASE_URL`'s normal database.
+
+The local browser suite uses real built artifacts with development-mode localhost cookies on Express and production-mode Next.js. Production secure-cookie/proxy checks run separately in the API integration suite. Hosted HTTPS/proxy-chain verification remains Phase 8. E2E traces/videos are disabled so authentication payloads and invitation tokens are not persisted in traces. Temporary failure diagnostics live under ignored `node_modules/.cache/`; reviewed positive screenshots contain only fictional records.
+
+### Phase 7 actual results — 16 October 2026
+
+| Check | Final result |
+| --- | --- |
+| `npm test` | PASS: 202 = 74 reference + 110 API/unit + 18 React rendering tests |
+| `npm run test:integration` | PASS: 43 PostgreSQL/HTTP tests |
+| `npm run test:built` | PASS: 3 isolated packaged-seed tests |
+| `npm run test:e2e` | PASS: 3 Chromium tests, 0 skipped, final run 18.3 seconds |
+| `npm run lint`, `npm run typecheck` | PASS, exit 0 |
+| `npm run build`, `npm run db:validate` | PASS, exit 0 |
+| Offline `npm ci --dry-run --ignore-scripts --offline --no-audit --no-fund` | PASS, exit 0 |
+| `git diff --check` | PASS; existing LF/CRLF conversion notices only |
+| `npm audit --omit=dev` | PASS: zero reported production vulnerabilities |
+| Full `npm audit` | FAIL: four high affected development packages from the one unpatched braces advisory; see audit report |
+| Clean Git checkout has original pack inputs | FAIL: original seed/workbook/reference files remain untracked under the earlier generated-files-only commit scope; supply the unchanged pack before a clean-checkout build |
+
+Across the four test commands: **251 passed, 0 failed/skipped in final runs**. Browser flows use independent FACILITATOR, MANAGER and participant contexts, two complete 14-group UI assessments, real database failures on initial/final save and last flush, refresh/Back/resume, mouse drag and keyboard move buttons at 375px, simultaneous submits, immutable SINGLE/TIED results, staff reports and manager metrics. An all-four tie adds a third completion while contributing just one additional TIED count, with all 12 N slogans verified in participant and staff UI.
+
+The asset test fetched **18 built JS/CSS assets and six dynamic HTML routes** and found no source hashes, source metadata, word-to-dimension mappings, opaque seed IDs or build-time secret canaries. Assessment word payloads and public result candidate payloads passed exact-field allowlists. No missing-description banner or automatic tie winner was found in application code, guide or prompts. Dependency review found no unused direct dependencies to remove; production has one scorer, with the required reference scorer retained only as the preserved test/reference input. Early browser test failures were in the new test's selectors/timing: hidden dnd-kit placeholders and Next's route announcer were excluded, and each reorder awaited. The existing drag component was retested unchanged and passes.
+
+[Detailed evidence, audit limits and screenshots](artifacts/phase7/EVIDENCE.md). Remaining dependency finding: `@next/eslint-plugin-next → fast-glob → micromatch → braces`; the current [GitHub advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) lists no patched braces version. Registry checks show the latest same-line plugin/micromatch/braces versions still have that dependency. No forced framework/plugin downgrade was made.
+
+Phase 7 modified files: `.env.example`, `README.md`, `package.json`, `package-lock.json`, `eslint.config.mjs`, `apps/api/src/http/reports.ts`, `apps/api/test/helpers/assessment.ts`, and the access/assessment/reports integration tests. Added: `apps/api/test/report-dto.test.ts`, `tests/e2e/run.mjs`, `tests/e2e/playwright.config.ts`, `tests/e2e/full-flow.spec.ts`, and `artifacts/phase7/` evidence/screenshots. Scoring, source files, migrations and application UI behavior remain unchanged. No deployment, commit or push was performed in Phase 7.

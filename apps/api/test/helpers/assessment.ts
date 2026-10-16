@@ -1,7 +1,10 @@
 import { loadAssessmentSeed } from '../../src/data/assessment.ts';
-import { DIMENSIONS, type Answer, type Dimension } from '../../src/domain/scoring.ts';
+import { DIMENSIONS, type Answer, type Dimension, type Profile } from '../../src/domain/scoring.ts';
 
 export const seed = loadAssessmentSeed();
+
+export const visibleProfiles = (profiles: readonly Profile[]) => profiles.map(({ code, nameAr, descriptionAr, descriptionEn }) =>
+  ({ code, nameAr, descriptionAr, descriptionEn }));
 
 export const order = (dimensions: readonly Dimension[]): Answer[] => seed.groups.map(group => ({
   groupId: group.id,

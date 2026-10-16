@@ -12,7 +12,7 @@ import { createApp, inviteHash } from '../../src/app.ts';
 import { seedStaff } from '../../src/auth/seed.ts';
 import { getSecurityConfig } from '../../src/env.ts';
 import { scoreAssessment } from '../../src/domain/scoring.ts';
-import { seed, order, mixed } from '../helpers/assessment.ts';
+import { seed, order, mixed, visibleProfiles } from '../helpers/assessment.ts';
 
 const connectionString = process.env.TEST_DATABASE_URL;
 if (!connectionString) throw new Error('Set TEST_DATABASE_URL to run real PostgreSQL integration tests. No tests are silently skipped.');
@@ -253,7 +253,7 @@ test('SINGLE and TIED are immutable completed snapshots; participants see only t
     assert.deepEqual(body.result.scoreRanking, expected.scoreRanking);
     assert.deepEqual(body.result.tiedScoreGroups, expected.tiedScoreGroups);
     assert.deepEqual(body.result.candidateProfileCodes, expected.candidateProfileCodes);
-    assert.deepEqual(body.result.candidateProfiles, expected.candidateProfiles);
+    assert.deepEqual(body.result.candidateProfiles, visibleProfiles(expected.candidateProfiles));
     assert.equal(body.result.assessmentVersion, seed.assessmentVersion);
     assert.equal(body.result.scoringPolicyVersion, seed.scoringPolicyVersion);
     assert.equal(body.result.profileTextPolicyVersion, seed.profileTextPolicyVersion);
