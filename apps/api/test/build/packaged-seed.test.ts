@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { after, test } from 'node:test';
+import { spawnSync } from 'node:child_process';
 import type { AssessmentSeed, AssessmentScores } from '../../src/domain/scoring.ts';
 
 const temporaryFolders: string[] = [];
@@ -76,4 +77,28 @@ test('compiled loader rejects changed private seed bytes before using their cont
   writeFileSync(path, Buffer.concat([readFileSync(path), Buffer.from('\n')]));
   const { loadAssessmentSeed } = await loadArtifact(root);
   assert.throws(() => loadAssessmentSeed(), /seed fingerprint mismatch/);
+});
+
+test('host build packages only the fingerprint-validated secret when the source checkout has no seed', () => {
+  const root = mkdtempSync(join(tmpdir(), 'disc-phase2-'));
+  temporaryFolders.push(root);
+  mkdirSync(join(root, 'scripts'));
+  mkdirSync(join(root, 'apps/api/dist/domain'), { recursive: true });
+  mkdirSync(join(root, 'apps/api/dist/data'), { recursive: true });
+  writeFileSync(join(root, 'package.json'), '{"type":"module"}\n');
+  copyFileSync(new URL('../../../../scripts/package-api-seed.mjs', import.meta.url), join(root, 'scripts/package-api-seed.mjs'));
+  for (const file of ['domain/scoring.js', 'data/assessment.js']) {
+    copyFileSync(new URL(file, built), join(root, 'apps/api/dist', file));
+  }
+  const bytes = readFileSync(new URL('data/disc-assessment-seed.json', built));
+  const run = (secret: string) => spawnSync(process.execPath, ['scripts/package-api-seed.mjs'], {
+    cwd: root, env: { ...process.env, PRIVATE_SEED_BASE64: secret }, encoding: 'utf8', windowsHide: true,
+  });
+  const valid = run(bytes.toString('base64'));
+  assert.equal(valid.status, 0, valid.stderr);
+  assert.deepEqual(readFileSync(join(root, 'apps/api/dist/data/disc-assessment-seed.json')), bytes);
+  assert.equal(valid.stdout.includes(bytes.toString('base64')), false);
+  const corrupt = run(Buffer.concat([bytes, Buffer.from('\n')]).toString('base64'));
+  assert.notEqual(corrupt.status, 0);
+  assert.match(corrupt.stderr, /fingerprint mismatch/);
 });
