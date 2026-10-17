@@ -61,6 +61,20 @@ A Vercel Next production deployment dpl_6h74v7SQSjrvuZyYXyAS9AwhcYe7 reached REA
 
 Evaluator credentials are stored only in the owner's ignored EVALUATOR_ACCESS.local.md. Public instructions: open /login, use facilitator for invitations/full reports, manager for analytics, and an incognito participant window for an invitation. Sharing that ignored credential file is the owner's controlled evaluator handoff.
 
+## Final published application release
+
+Application revision **9a8bac95ee928bfd3a5e26a334e238358f976086** is live on both Render services:
+
+- API deploy **dep-db9btue1egvs73emasdg**, live 17 October 2026 00:20:15 UTC, build/deploy duration approximately 70 seconds.
+- Frontend deploy **dep-db9btvfavr4c73dg7gug**, live 17 October 2026 00:20:22 UTC, duration approximately 73 seconds.
+- Final HTTPS smoke PASS: root 307 → /login; frontend-origin health 200/no-store; secure facilitator login 200; forbidden manager route 403; foreign mutation Origin 403; private seed and .env URLs 404.
+- Connected Chrome followed the real root redirect to the staff login page successfully.
+- A second retained-cookie check across this final process replacement PASS: identical staff identity, manager summary and all three immutable reports. This check did not create new participants.
+- Provider error-level application log scan returned zero entries for both services. No third-party log drain or continuous monitoring was configured.
+- Later evidence-only commits do not alter the deployed application code. Both services use manual deployment, so ordinary documentation pushes do not replace these tested instances.
+
+Phase 8 changed files: scripts/package-api-seed.mjs, scripts/create-hosted-database.mjs, apps/api/test/build/packaged-seed.test.ts, apps/web/src/app/page.tsx, .env.example, .gitignore, package.json and README.md. Added tests/hosted/{README.md,playwright.config.ts,full-flow.spec.ts,run.mjs,persistence.mjs} and this evidence folder with five screenshots. No dependency was added in Phase 8. The local evaluator-access file and production environment file are ignored; a staged-patch scan found none of the generated session/staff/seed secrets before publication.
+
 ## Reviewed screenshots
 
 - [Stored single, mobile](hosted-single-mobile.jpg)

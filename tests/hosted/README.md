@@ -18,6 +18,10 @@ Both SINGLE DI and TIED DI/ID participants confirm all 14 groups in the UI with 
 
 Cookie restoration in a fresh context proves the session is usable independently of the original browser context. Persistence across an actual API service restart/redeploy must also be checked separately through the hosting provider; the suite does not claim to restart services.
 
+The root convenience command is `npm run test:hosted`. Its runner optionally loads the Git-ignored `.env.production.local` and maps the backend staff seed values to the hosted test variables. It never prints credentials. The app's normal startup does not load that production file.
+
+For process-replacement evidence, run `npm run test:hosted -- --persistence` after there are completed fixture records. When `PERSISTENCE_READY` appears, the script holds its authenticated cookie only in memory. Redeploy the API through authorized hosting access; confirm the new deploy ID is live, then write a non-secret marker to `node_modules/.cache/disc-phase8-restart.complete`. The script checks the same session, exact manager snapshot and every completed report without another login, then removes its temporary marker files. It times out after ten minutes instead of treating a missing restart confirmation as success.
+
 The existing root `npm run typecheck` includes these files through `tsconfig.tests.json`. Targeted checks, without changing shared configuration:
 
 ```sh
