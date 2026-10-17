@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { Buffer } from 'node:buffer';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { ASSESSMENT_VERSION, validateAssessmentSeed } from '../apps/api/dist/domain/scoring.js';
 import { SEED_SHA256 } from '../apps/api/dist/data/assessment.js';
