@@ -1,8 +1,8 @@
-# DISC prototype — Phases 1–7
+# DISC prototype — Phases 1–8
 
-Next.js App Router/React, the Express scoring domain, PostgreSQL models/sessions, staff login, invitations, the complete assessment flow, stored reports and staff dashboards are implemented. Open `/login` for staff navigation: both staff roles can use `/facilitator` to create invitations and view participant rows; only MANAGER can use `/manager` for cohort analytics. Participants use generated `/invite/[token]` links and their stored `/result`. Staff full reports are at `/staff/participants/[id]/report`. The root page remains empty.
+Next.js App Router/React, the Express scoring domain, PostgreSQL models/sessions, staff login, invitations, the complete assessment flow, stored reports and staff dashboards are implemented. Open `/login` for staff navigation: both staff roles can use `/facilitator` to create invitations and view participant rows; only MANAGER can use `/manager` for cohort analytics. Participants use generated `/invite/[token]` links and their stored `/result`. Staff full reports are at `/staff/participants/[id]/report`. The root redirects to `/login`.
 
-Phase 7 adds isolated Playwright browser QA and narrows public report candidate DTOs. [Full Phase 7 audit and remaining findings](artifacts/phase7/EVIDENCE.md). No deployment has been performed.
+**Live prototype:** [disc-ahmad-web.onrender.com](https://disc-ahmad-web.onrender.com/login). Phase 8 deploys both Next.js and Express to Render with persistent PostgreSQL. [Hosted checks, limitations and screenshots](artifacts/phase8/EVIDENCE.md). Phase 7's [local audit](artifacts/phase7/EVIDENCE.md) remains the historical record of that phase.
 
 The original playbook, private seed, workbook and reference scorer/tests are preserved. Start with `README_START_HERE.md` for the complete phase sequence.
 
@@ -503,3 +503,42 @@ The asset test fetched **18 built JS/CSS assets and six dynamic HTML routes** an
 [Detailed evidence, audit limits and screenshots](artifacts/phase7/EVIDENCE.md). Remaining dependency finding: `@next/eslint-plugin-next → fast-glob → micromatch → braces`; the current [GitHub advisory](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) lists no patched braces version. Registry checks show the latest same-line plugin/micromatch/braces versions still have that dependency. No forced framework/plugin downgrade was made.
 
 Phase 7 modified files: `.env.example`, `README.md`, `package.json`, `package-lock.json`, `eslint.config.mjs`, `apps/api/src/http/reports.ts`, `apps/api/test/helpers/assessment.ts`, and the access/assessment/reports integration tests. Added: `apps/api/test/report-dto.test.ts`, `tests/e2e/run.mjs`, `tests/e2e/playwright.config.ts`, `tests/e2e/full-flow.spec.ts`, and `artifacts/phase7/` evidence/screenshots. Scoring, source files, migrations and application UI behavior remain unchanged. No deployment, commit or push was performed in Phase 7.
+
+## Phase 8 — hosted prototype
+
+The verified public frontend is https://disc-ahmad-web.onrender.com. Its same-origin /api rewrite calls https://disc-ahmad-api.onrender.com. Both run on Render in Frankfurt; the separate disc_prototype_v12 logical database runs on the existing Render PostgreSQL 17 instance. The existing Compass database was not migrated or seeded.
+
+### Actual runtime and commands
+
+Both deployed services use Node.js 24.21.0, pinned with NODE_VERSION, and NODE_ENV=production. Commands run from the repository root:
+
+| Operation | Actual command |
+| --- | --- |
+| API build | npm ci --include=dev && npm run build --workspace @disc/api |
+| API start | npm run start:api |
+| Next build | npm ci --include=dev && npm run build --workspace @disc/web |
+| Next start | npm run start --workspace @disc/web -- --hostname 0.0.0.0 --port $PORT |
+| Explicit migration | npm run db:deploy |
+| Explicit staff seed | npm run db:seed |
+| Hosted browser checks | npm run test:hosted |
+| Restart persistence check | npm run test:hosted -- --persistence |
+
+The API binds API_HOST=0.0.0.0 and the platform PORT (10000 in the tested deployments). The one-time provisioning command node scripts/create-hosted-database.mjs created only disc_prototype_v12; its fixed target and matching host/credentials checks prevent migrating the existing source database. Prisma migration deployment created the durable Session table and assessment/result constraints. Separate staff seeding ran once and preserves existing passwords. Provisioning/migration/seeding were removed from the recurring build command after initialization; future schema changes require an explicit reviewed db:deploy. PROVISION_DATABASE_URL was cleared afterward.
+
+### Configuration and private source delivery
+
+API secrets are configured in Render's environment store: DATABASE_URL (the internal URL of the separate database), SESSION_SECRET, FACILITATOR_SEED_EMAIL/PASSWORD and MANAGER_SEED_EMAIL/PASSWORD. PUBLIC_APP_URL=https://disc-ahmad-web.onrender.com. The web has API_ORIGIN=https://disc-ahmad-api.onrender.com and no database, session, staff-password or private-seed variables.
+
+PRIVATE_SEED_BASE64 supplies the exact original private JSON bytes to the backend build when the original source file is absent from the Git checkout. The build checks the pinned SHA-256 and full seed contract before writing apps/api/dist/data/disc-assessment-seed.json. Compiled runtime loading still requires this packaged file and rejects missing/tampered data. Original reference files remain unchanged and untracked under the earlier commit scope; they are not needed for a deployed web build or API build using this backend-only secret. They remain necessary for the full local source/reference test suite.
+
+The initial live ingress probe observed an immediate peer of 127.0.0.1 and X-Forwarded-Proto=https. TRUSTED_PROXY_CIDRS=127.0.0.1/32 and PROXY_CONFIGURATION_VERIFIED=true are configured for the observed Render ingress, rather than blanket or hop-count trust. Hosted login and redemption verified __Host-disc.sid through the frontend, with Secure, HttpOnly, SameSite=Lax, Path=/ and no Domain. Exact mutation Origin checks and no-store responses were verified through the same path.
+
+### Evaluator access
+
+Open /login. Use FACILITATOR for participant management/invitation creation/full reports and MANAGER for cohort analytics as well. The two evaluator credentials and step-by-step instructions are in the local, Git-ignored artifacts/phase8/EVALUATOR_ACCESS.local.md, shared privately by the owner; no passwords appear in this README or the deployment evidence. Use an incognito window for participant invitation links so the staff session stays separate. Three fictional completed QA records demonstrate SINGLE DI, DI/ID TIED and all-four TIED results.
+
+### Hosting limits and deployment history
+
+No paid plan or domain was purchased. Render free services can cold-start after inactivity and share the workspace's free service-hour allowance. The existing free PostgreSQL instance expires on 14 November 2026 at approximately 00:55 CET (13 November 23:55 UTC); the owner must upgrade or migrate before then to retain long-term availability. No automatic paid upgrade was selected.
+
+A Vercel production build also reached READY after correcting monorepo installation to cd ../.. && npm ci --include=dev. Both its assigned public addresses reset HTTPS connections during direct/Chrome verification, so it is not presented as the tested prototype URL. The delivered frontend is Render, not Vercel. The unrelated Compass Vercel project was preserved.

@@ -10,3 +10,4 @@ coverage/
 apps/api/src/generated/
 .DS_Store
 Thumbs.db
+artifacts/phase8/EVALUATOR_ACCESS.local.md
